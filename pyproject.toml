@@ -1,0 +1,43 @@
+[project]
+name = "py-pwy-phy-hy"
+version = "0.1.0"
+description = "Fork of lucidrains/torch-einops-utils."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Phil Wang", email = "lucidrains@gmail.com" },
+  { name = "Hunter Hogan", email = "HunterHogan@pm.me" }
+]
+maintainers = [{ name = "Hunter Hogan", email = "HunterHogan@pm.me" }]
+dependencies = [
+  "einops>=0.8.2",
+  "packaging>=26.0",
+  "torch>=2.11.0",
+  "typing-extensions>=4.0.0",
+]
+
+[dependency-groups]
+testing = [
+  "more-itertools>=11.0.2",
+  "numpy>=2.2.6",
+  "pytest>=9.0.3",
+  "pytest-cov>=7.1.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.6,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.coverage]
+report = { ignore_errors = false }
+run = { branch = true, data_file = "tests/coverage/.coverage", omit = [
+  "tests/*"
+], source = ["."] }
+
+[tool.pytest]
+addopts = ["--color=auto"]
+log_auto_indent = "On"
+testpaths = ["tests"]
+
+[tool.uv]
+default-groups = ["testing"]
