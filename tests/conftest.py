@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator, Sequence
 from more_itertools import extract
 from pathlib import Path
+from py_pwy_phy_hy.einops import pack_one
 from torch import Tensor
 import datetime
 import itertools
@@ -332,3 +333,20 @@ MAP_VALUES_NESTED_STRUCTURE_CASES: list[object] = [
 @pytest.fixture(params=MAP_VALUES_NESTED_STRUCTURE_CASES)
 def map_values_nested_structure(request: pytest.FixtureRequest) -> object:
     return request.param
+
+
+# ======== einops Infrastructure ========
+
+EINOPS_PACK_PATTERN_CASES: list[object] = [
+    pytest.param("*", id="pattern-star"),
+]
+
+
+@pytest.fixture(params=EINOPS_PACK_PATTERN_CASES)
+def einops_pack_one_pattern(request: pytest.FixtureRequest) -> str:
+    return request.param
+
+
+@pytest.fixture
+def pack_one_result(t: Tensor, einops_pack_one_pattern: str) -> tuple[Tensor, Sequence[tuple[int, ...] | list[int]]]:
+    return pack_one(t, einops_pack_one_pattern)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from py_pwy_phy_hy import compact, default, divisible_by, exists, first, identity, maybe, safe
+from py_pwy_phy_hy import compact, default, divisible_by, exists, first, identity, maybe, once, safe
 from torch import Tensor
 import pytest
 import torch
@@ -181,3 +181,39 @@ def test_safe_decorator_unwraps_tensors(
 		assert torch.equal(result, expected_output), (
 			f"safe-decorated function returned {result}, expected {expected_output} for multiple active tensors."
 		)
+
+@pytest.mark.parametrize(
+	("callableInput", "expectedFirstResult"),
+	[
+		pytest.param(5, 10, id="input-five-expected-ten"),
+		pytest.param(13, 26, id="input-thirteen-expected-twenty-six"),
+	],
+)
+def test_once_executes_exactly_on_first_call_then_returns_none(
+	callableInput: int,
+	expectedFirstResult: int,
+) -> None:
+	invocationCount: dict[str, int] = {"count": 0}
+
+	def doubleValue(value: int) -> int:
+		invocationCount["count"] += 1
+		return value * 2
+
+	wrappedDoubleValue = once(doubleValue)
+
+	firstResult = wrappedDoubleValue(callableInput)
+	secondResult = wrappedDoubleValue(callableInput)
+	thirdResult = wrappedDoubleValue(callableInput)
+
+	assert firstResult == expectedFirstResult, (
+		f"once first call returned {firstResult}, expected {expectedFirstResult} for {callableInput=}."
+	)
+	assert secondResult is None, (
+		f"once second call returned {secondResult}, expected None for {callableInput=}."
+	)
+	assert thirdResult is None, (
+		f"once third call returned {thirdResult}, expected None for {callableInput=}."
+	)
+	assert invocationCount["count"] == 1, (
+		f"once wrapped function was invoked {invocationCount['count']} times, expected exactly 1 for {callableInput=}."
+	)

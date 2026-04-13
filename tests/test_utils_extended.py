@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from py_pwy_phy_hy import masked_mean, pack_with_inverse, tree_flatten_with_inverse, tree_map_tensor
+from py_pwy_phy_hy import l2norm, masked_mean, tree_flatten_with_inverse, tree_map_tensor
 from torch import Tensor
 from torch.utils._pytree import tree_flatten, tree_unflatten
 import pytest
@@ -142,61 +142,26 @@ def test_tree_flatten_with_inverse_reconstructs_and_replaces_leaves(
 
 
 @pytest.mark.parametrize(
-    ("pattern", "tensor_shift"),
-    [pytest.param("b *", 7.0, id="pattern-b-star-shift-seven")],
+    "tolerance",
+    [pytest.param(1e-5, id="tolerance-1e-5")],
 )
-def test_pack_with_inverse_round_trip_for_tensor_and_sequence(
-    pack_input: Tensor | list[Tensor],
-    pattern: str,
-    tensor_shift: float,
+def test_l2norm_produces_unit_length_vectors(
+    t: Tensor,
+    tolerance: float,
 ) -> None:
-    if torch.is_tensor(pack_input):
-        packed, inverse = pack_with_inverse(pack_input, pattern)
-        round_trip = inverse(packed, None)
-        shifted_round_trip = inverse(packed + tensor_shift, None)
+    inputTensor = t.to(dtype=torch.float64)
+    resultTensor = l2norm(inputTensor)
 
-        assert torch.is_tensor(round_trip), (
-            "pack_with_inverse round-trip output is not a tensor for tensor input."
-        )
-        assert torch.equal(round_trip, pack_input), (
-            f"pack_with_inverse round-trip mismatch for tensor input with {tuple(pack_input.shape)=} and {pattern=}."
-        )
-
-        expected_shifted = pack_input + tensor_shift
-        assert torch.is_tensor(shifted_round_trip), (
-            "pack_with_inverse shifted round-trip output is not a tensor for tensor input."
-        )
-        assert torch.equal(shifted_round_trip, expected_shifted), (
-            f"pack_with_inverse shifted round-trip mismatch for tensor input with {tuple(pack_input.shape)=} and {pattern=}."
-        )
-        return
-
-    assert isinstance(pack_input, list), (
-        "pack_with_inverse list test input must be a list of tensors."
-    )
-    packed, inverse = pack_with_inverse(pack_input, pattern)
-    round_trip = inverse(packed, None)
-    shifted_round_trip = inverse(packed + tensor_shift, None)
-
-    assert isinstance(round_trip, list), (
-        "pack_with_inverse round-trip output is not a list for sequence input."
-    )
-    assert isinstance(shifted_round_trip, list), (
-        "pack_with_inverse shifted output is not a list for sequence input."
-    )
-    assert len(round_trip) == len(pack_input), (
-        f"pack_with_inverse round-trip sequence length mismatch: got {len(round_trip)}, expected {len(pack_input)}."
-    )
-    assert len(shifted_round_trip) == len(pack_input), (
-        f"pack_with_inverse shifted sequence length mismatch: got {len(shifted_round_trip)}, expected {len(pack_input)}."
+    assert resultTensor.shape == inputTensor.shape, (
+        f"l2norm returned shape {tuple(resultTensor.shape)}, expected {tuple(inputTensor.shape)} "
+        f"for input shape {tuple(t.shape)}."
     )
 
-    for tensor_index, (expected_tensor, round_trip_tensor, shifted_tensor) in enumerate(
-        zip(pack_input, round_trip, shifted_round_trip, strict=True)
-    ):
-        assert torch.equal(round_trip_tensor, expected_tensor), (
-            f"pack_with_inverse round-trip tensor mismatch at index {tensor_index} for {pattern=}."
-        )
-        assert torch.equal(shifted_tensor, expected_tensor + tensor_shift), (
-            f"pack_with_inverse shifted tensor mismatch at index {tensor_index} for {pattern=}."
-        )
+    vectorNorms = resultTensor.norm(dim=-1)
+    expectedNorms = torch.ones_like(vectorNorms)
+    assert torch.allclose(vectorNorms, expectedNorms, atol=tolerance), (
+        f"l2norm produced non-unit vector norms {vectorNorms} for input shape {tuple(t.shape)} "
+        f"with {tolerance=}."
+    )
+
+

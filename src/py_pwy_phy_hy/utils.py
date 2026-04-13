@@ -1,15 +1,15 @@
-"""Provide PyTree manipulation and masked tensor utilities for torch and einops workflows.
+"""Provide PyTorch tensor normalization, PyTree manipulation, and masked mean utilities.
 
-You can use this module to compute masked means, apply functions to tensor leaves in PyTree
-structures, flatten and reconstruct nested data, and pack tensors with recoverable inverses.
+You can use this module to normalize tensor vectors to unit length, compute masked means, apply
+functions to tensor leaves in PyTree structures, and flatten and reconstruct nested data.
 
 Contents
 --------
 Functions
+	l2norm
+		Normalize `Tensor` vectors to unit length along the last dimension.
 	masked_mean
 		Compute the mean of a tensor over positions selected by a boolean mask.
-	pack_with_inverse
-		Pack a tensor or list of tensors with an einops pattern and return a paired inverse.
 	tree_flatten_with_inverse
 		Flatten a PyTree into a list of leaves and return a paired inverse function.
 	tree_map_tensor
@@ -18,12 +18,52 @@ Functions
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from einops import pack, unpack
-from py_pwy_phy_hy import default, exists, first, pad_right_ndim
+from py_pwy_phy_hy import exists, pad_right_ndim
 from torch import is_tensor, Tensor
 from torch.utils._pytree import PyTree, tree_flatten, tree_map, tree_unflatten
-from typing import Any, overload
+from typing import Any
 import torch
+import torch.nn.functional as F
+
+def l2norm(t: Tensor) -> Tensor:
+	"""Normalize `Tensor` vectors to unit length.
+
+	You can use `l2norm` to normalize attention query and key vectors before computing similarity
+	scores. Normalizing query and key vectors prevents those with large magnitudes from dominating
+	similarity scores.
+
+	Parameters
+	----------
+	t : Tensor
+		Input `Tensor` to normalize.
+
+	Returns
+	-------
+	normalizedTensor : Tensor
+		`Tensor` with each vector scaled to unit length.
+
+	torch
+	-----
+	`l2norm` calls `torch.nn.functional.normalize` [1] with `p=2` and `dim=-1`, which divides each
+	vector by its Euclidean length (L2 norm) along the last dimension.
+
+	Examples
+	--------
+	Normalize `Tensor` attention query, `q`, and `Tensor` attention key, `k`, before computing
+	similarity scores: [2]
+
+		```python
+		q, k = map(l2norm, (q, k))
+		```
+
+	References
+	----------
+	[1] torch.nn.functional.normalize
+		https://pytorch.org/docs/stable/generated/torch.nn.functional.normalize.html
+	[2] BS-RoFormer.mel_band_roformer.LinearAttention
+		https://github.com/lucidrains/BS-RoFormer
+	"""
+	return F.normalize(t, dim = -1, p = 2)
 
 def masked_mean(
 	t: Tensor,
@@ -240,92 +280,6 @@ def tree_flatten_with_inverse(tree: PyTree) -> tuple[list[Any], Callable[[Iterab
 
 	return flattened, inverse
 
-@overload
-def pack_with_inverse(t: Tensor, pattern: str) -> tuple[Tensor, Callable[[Tensor, str | None], Tensor]]: ...
-@overload
-def pack_with_inverse(t: list[Tensor], pattern: str) -> tuple[Tensor, Callable[[Tensor, str | None], list[Tensor]]]: ...
-def pack_with_inverse(t: Tensor | list[Tensor], pattern: str) -> tuple[Tensor, Callable[[Tensor, str | None], Tensor | list[Tensor]]]:
-	"""Pack `t` with `pattern` using einops and return a paired inverse unpacking function.
-
-	You can use this function to merge one or more tensors into a single packed tensor using an
-	einops `pack` pattern [1] and to later restore the original shapes. When `t` is a single
-	`torch.Tensor`, the function wraps `t` in a list before packing and unwraps the result inside the
-	inverse function. When `t` is a list of tensors, the inverse function returns a list of tensors.
-	The inverse function accepts an optional `inv_pattern` argument to override the pattern used for
-	unpacking; when `inv_pattern` is `None`, the original `pattern` is reused.
-
-	Parameters
-	----------
-	t : Tensor | list[Tensor]
-		A single tensor or a list of tensors to pack.
-	pattern : str
-		An einops pack pattern string such as `'b * d'`, where `*` collects the packed dimensions.
-
-	Returns
-	-------
-	packed : Tensor
-		The packed tensor produced by `einops.pack` [1].
-	inverse : Callable[[Tensor, str | None], Tensor | list[Tensor]]
-		A function that accepts the packed (or transformed) tensor and an optional override pattern
-		and returns the unpacked tensor or list of tensors.
-
-	See Also
-	--------
-	tree_flatten_with_inverse : Flatten a PyTree and return an inverse reconstruction function.
-
-	Examples
-	--------
-	Pack a single tensor and recover the original shape [2]:
-
-		```python
-		import torch
-		from py_pwy_phy_hy import pack_with_inverse
-
-		t = torch.randn(3, 12, 2, 2)
-		packed, inverse = pack_with_inverse(t, "b * d")
-		# packed.shape == (3, 24, 2)
-		recovered = inverse(packed)
-		# recovered.shape == (3, 12, 2, 2)
-		```
-
-	Pack a list of tensors and unpack with an overriding pattern [2]:
-
-		```python
-		t = torch.randn(3, 12, 2)
-		u = torch.randn(3, 4, 2)
-		packed, inverse = pack_with_inverse([t, u], "b * d")
-		# packed.shape == (3, 28, 2)
-
-		reduced = packed.sum(dim=-1)
-		t_out, u_out = inverse(reduced, "b *")
-		# t_out.shape == (3, 12)
-		# u_out.shape == (3, 4)
-		```
-
-	References
-	----------
-	[1] einops.pack - einops documentation
-		https://einops.rocks/api/pack/
-	[2] tests.test_utils.test_pack_with_inverse
-
-	"""
-	is_one: bool = is_tensor(t)
-
-	if is_one:
-		t = [t]
-
-	packed, packed_shape = pack(t, pattern)
-
-	def inverse(out: Tensor, inv_pattern: str | None = None) -> Tensor | list[Tensor]:
-		inv_pattern = default(inv_pattern, pattern)
-		unpacked: list[Tensor] = unpack(out, packed_shape, inv_pattern)
-
-		if is_one:
-			return first(unpacked)
-
-		return unpacked
-
-	return packed, inverse
 
 """
 Some or all of the logic in this module may be protected by the following.

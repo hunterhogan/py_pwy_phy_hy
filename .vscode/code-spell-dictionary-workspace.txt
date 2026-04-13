@@ -6,6 +6,7 @@ augs
 autograd
 capsys
 coor
+ction
 dlpack
 einops
 einsum
@@ -14,6 +15,7 @@ freqs
 gateloop
 getfixturevalue
 hiddens
+hypersphere
 klass
 kornia
 lerp

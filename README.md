@@ -6,7 +6,7 @@ This repository is a fork of [`lucidrains/torch-einops-utils`](https://github.co
 
 `py-pwy-phy-hy` is most useful when combined with other lucidrains repositories. Repositories such as [`dreamer4`](https://github.com/lucidrains/dreamer4), [`metacontroller`](https://github.com/lucidrains/metacontroller), [`mimic-video`](https://github.com/lucidrains/mimic-video), [`pi-zero-pytorch`](https://github.com/lucidrains/pi-zero-pytorch), [`sdft-pytorch`](https://github.com/lucidrains/sdft-pytorch), and [`locoformer`](https://github.com/lucidrains/locoformer) repeatedly need operations such as `align_dims_left`, `shape_with_replace`, `lens_to_mask`, `pad_sequence`, `safe_cat`, and `pack_with_inverse`. This package centralizes those operations in one typed import surface instead of re-implementing the same tensor utility layer in each model repository.
 
-If you already know `torch-einops-utils`, the best mental model is simple. `py_pwy_phy_hy` is a typed substitute for that package. The public function family is the same kind of function family: small PyTorch and `einops` helpers for shape work, masks, padding, optional tensors, PyTree traversal, device routing, and checkpoint reconstruction. The important difference is import path. Upstream code imports `torch_einops_utils`. This repository exports `py_pwy_phy_hy`. The substitution is conceptual, not literal import-path compatibility.
+If you already know `torch-einops-utils`, `py_pwy_phy_hy` began as a typed substitute for that package and has since grown into a superset. In addition to everything from `torch-einops-utils`, this repository centralizes small utility functions that appear repeatedly in other lucidrains model repositories but were never collected in one place, such as `l2norm`, `once`, `pack_one`, and `unpack_one`. The function family remains the same kind: small PyTorch and `einops` helpers for shape work, masks, padding, optional tensors, PyTree traversal, device routing, and checkpoint reconstruction. The import path is `py_pwy_phy_hy`, not `torch_einops_utils`. The relationship is conceptual, not literal import-path compatibility.
 
 Use `py-pwy-phy-hy` when you want strict typing, a `py.typed` marker, focused modules, extensive tests, and docstrings written for both humans and AI assistants. Use upstream when you want the most compact possible version of the same idea.
 
@@ -17,7 +17,7 @@ Use `py-pwy-phy-hy` when you want strict typing, a `py.typed` marker, focused mo
 - Python requirement: `>=3.10`.
 - Runtime dependencies: `torch`, `einops`, `packaging`, and `typing-extensions`.
 - Root package exports: helper functions, slicing helpers, rank-alignment helpers, mask helpers, safe concatenation helpers, padding helpers, and PyTree / `einops` helpers.
-- Submodules with dedicated imports: `py_pwy_phy_hy.device` and `py_pwy_phy_hy.save_load`.
+- Submodules with dedicated imports: `py_pwy_phy_hy.device`, `py_pwy_phy_hy.einops`, and `py_pwy_phy_hy.save_load`.
 - Typing status: the package ships a `py.typed` marker and the repository uses strict type checking.
 - Best fit: lucidrains-style model repositories that work with variable-length tensors, `einops` patterns, optional intermediate tensors, and nested `torch.nn.Module` graphs.
 
@@ -37,19 +37,30 @@ Import most tensor helpers from the package root:
 from py_pwy_phy_hy import (
     align_dims_left,
     and_masks,
+    l2norm,
     lens_to_mask,
     masked_mean,
     maybe,
+    once,
     or_masks,
-    pack_with_inverse,
-    pad_sequence,
     pad_sequence_and_cat,
+    pad_sequence,
     safe_cat,
     safe_stack,
     shape_with_replace,
     slice_at_dim,
     tree_flatten_with_inverse,
     tree_map_tensor,
+)
+```
+
+Import einops pack and unpack helpers from `py_pwy_phy_hy.einops`:
+
+```python
+from py_pwy_phy_hy.einops import (
+    pack_one,
+    pack_with_inverse,
+    unpack_one,
 )
 ```
 
@@ -161,6 +172,7 @@ assert restored.hidden_dim == 20
 | `first(arr)`                   | Returns `arr[0]`. Use `first` when the sequence supports integer indexing and index `0` is valid.                                                                                                                             |
 | `map_values(fn, v)`            | Recursively applies `fn` to every leaf value inside nested `list`, `tuple`, and `dict` structures. Container shape is preserved.                                                                                              |
 | `maybe(fn)`                    | Wraps `fn` so the wrapped callable returns `None` when the first argument is `None`. When `fn` itself is `None`, `maybe(None)` returns `identity`.                                                                            |
+| `once(fn)`                     | Wraps `fn` so the wrapped callable executes at most once. On the first call the function runs and returns its result. On every subsequent call the wrapper returns `None` without calling `fn`.                               |
 | `safe(fn)`                     | Decorator for callables whose first argument is `Sequence[Tensor]`. The decorator removes `None` values from that first argument before the call. If no tensors remain, the decorator returns `None` instead of calling `fn`. |
 
 ### Shape and slicing helpers
@@ -232,10 +244,20 @@ When `pad_lens=True` and `return_lens=True`, the second tensor contains padding 
 
 | Name                                            | Contract                                                                                                                                                                                                                                                                                       |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `l2norm(t)`                                     | Normalizes each vector in `t` to unit length along the last dimension by dividing by its L2 norm. Delegates to `torch.nn.functional.normalize` with `p=2` and `dim=-1`.                                                                                                                        |
 | `masked_mean(t, mask=None, dim=None, eps=1e-5)` | Computes a masked mean. When `mask is None`, the function falls back to `t.mean(...)`. When no masked position is selected and `dim is None`, the function returns zero by summing over the empty selection. When `mask.ndim < t.ndim`, the function right-pads mask rank before broadcasting. |
 | `tree_map_tensor(fn, tree)`                     | Applies `fn` to every tensor leaf in a PyTree and leaves non-tensor leaves unchanged.                                                                                                                                                                                                          |
 | `tree_flatten_with_inverse(tree)`               | Returns a flat list of leaves and an inverse function that reconstructs the original PyTree shape from a replacement iterable of leaves.                                                                                                                                                       |
-| `pack_with_inverse(t, pattern)`                 | Wraps `einops.pack` and stores the corresponding inverse. Input `t` may be one tensor or a `list[Tensor]`. The inverse returns the matching kind and optionally accepts a different `inv_pattern` for unpacking.                                                                               |
+
+## `einops` submodule reference
+
+The `py_pwy_phy_hy.einops` submodule contains pack and unpack utilities with paired inverse functions.
+
+| Name                            | Contract                                                                                                                                                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pack_one(t, pattern)`          | Packs one tensor using an einops pattern and returns the packed tensor and shape metadata for paired reconstruction with `unpack_one`.                                                                           |
+| `pack_with_inverse(t, pattern)` | Wraps `einops.pack` and stores the corresponding inverse. Input `t` may be one tensor or a `list[Tensor]`. The inverse returns the matching kind and optionally accepts a different `inv_pattern` for unpacking. |
+| `unpack_one(t, ps, pattern)`    | Unpacks one tensor using packed-shape metadata produced by `pack_one`.                                                                                                                                           |
 
 ## `device` submodule reference
 

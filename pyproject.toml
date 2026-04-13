@@ -1,9 +1,10 @@
 [project]
 name = "py-pwy-phy-hy"
-version = "0.1.0"
-description = "Fork of lucidrains/torch-einops-utils."
+version = "0.1.1"
+description = "Typed tensor-shaping, masking, padding, device-routing, and checkpoint utilities for PyTorch and `einops`. A superset of `lucidrains/torch-einops-utils` with similar utilities from other lucidrains packages. Adds strict typing, extensive tests, and comprehensive docstrings."
 readme = "README.md"
 requires-python = ">=3.10"
+license = "CC-BY-NC-4.0"
 authors = [
   { name = "Phil Wang", email = "lucidrains@gmail.com" },
   { name = "Hunter Hogan", email = "HunterHogan@pm.me" }
@@ -15,6 +16,13 @@ dependencies = [
   "torch>=2.11.0",
   "typing-extensions>=4.0.0",
 ]
+
+[project.urls]
+Documentation = "https://context7.com/hunterhogan/py_pwy_phy_hy"
+Donate = "https://www.patreon.com/integrated"
+Homepage = "https://github.com/hunterhogan/py-pwy-phy-hy"
+Issues = "https://github.com/hunterhogan/py-pwy-phy-hy/issues"
+Repository = "https://github.com/hunterhogan/py-pwy-phy-hy"
 
 [dependency-groups]
 testing = [

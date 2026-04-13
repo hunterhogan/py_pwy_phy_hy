@@ -1,7 +1,8 @@
 """Access PyTorch tensor-shaping, masking, padding, and checkpoint utilities.
 
 You can use this package for optional-value handling, tensor slicing, rank alignment, mask
-construction, safe concatenation, sequence padding, and PyTree traversal.
+construction, safe concatenation, sequence padding, PyTree traversal, and `einops`-pattern tensor
+packing.
 
 Helpers
 -------
@@ -21,6 +22,8 @@ map_values
 	Apply a function to every leaf value in a nested `list`, `tuple`, or `dict` structure.
 maybe
 	Wrap a callable so it skips work when the first argument is `None`.
+once
+	Wrap a callable so the callable executes at most once.
 safe
 	Wrap a callable so `None` values are removed from the first tensor sequence argument.
 
@@ -87,10 +90,10 @@ pad_sequence_and_cat
 
 Utilities
 ---------
+l2norm
+	Normalize `Tensor` vectors to unit length along the last dimension.
 masked_mean
 	Compute a mean over positions selected by a boolean mask.
-pack_with_inverse
-	Pack one or more tensors with an einops pattern and return an inverse unpacking function.
 tree_flatten_with_inverse
 	Flatten a PyTree and return an inverse reconstruction function.
 tree_map_tensor
@@ -100,6 +103,8 @@ Modules
 -------
 device
 	Determine `torch.nn.Module` devices and decorate callables to move `Tensor` arguments automatically.
+einops
+	Pack and unpack `Tensor` objects with `einops` patterns and paired inverse functions.
 save_load
 	Decorate `torch.nn.Module` subclasses with checkpoint save, load, and reconstruction helpers.
 """
@@ -115,7 +120,7 @@ from py_pwy_phy_hy._types import (
 # isort: split
 from py_pwy_phy_hy._helpers import (
 	compact as compact, default as default, divisible_by as divisible_by, exists as exists, first as first, identity as identity,
-	map_values as map_values, maybe as maybe, safe as safe)
+	map_values as map_values, maybe as maybe, once as once, safe as safe)
 
 # isort: split
 from py_pwy_phy_hy._slicing import (
@@ -140,10 +145,11 @@ from py_pwy_phy_hy._padding import (
 	pad_sequence_and_cat as pad_sequence_and_cat)
 
 # isort: split
-from py_pwy_phy_hy.utils import masked_mean as masked_mean
+from py_pwy_phy_hy.utils import l2norm as l2norm, masked_mean as masked_mean
 
 # isort: split
 from py_pwy_phy_hy.utils import tree_flatten_with_inverse as tree_flatten_with_inverse, tree_map_tensor as tree_map_tensor
 
 # isort: split
-from py_pwy_phy_hy.utils import pack_with_inverse as pack_with_inverse
+# NOTE encourage users to import pack_with_inverse from the einops submodule for discoverability
+from py_pwy_phy_hy.einops import pack_with_inverse  # pyright: ignore[reportUnusedImport]

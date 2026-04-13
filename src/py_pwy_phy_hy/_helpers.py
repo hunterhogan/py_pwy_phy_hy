@@ -6,6 +6,69 @@ from py_pwy_phy_hy import IdentityCallable, PSpec, RVar, SupportsIntIndex, T_co,
 from torch import Tensor
 from typing import Concatenate, overload, TypeGuard
 
+def compact(arr: Iterable[T_co | None]) -> list[T_co]:
+	"""Filter `None` values from `arr` and return the remaining elements as a `list`.
+
+	You can use `compact` to remove all `None` values from an iterable, producing a typed `list` of
+	non-`None` elements. `compact` applies `exists` [1] as the predicate for `filter` [2]. The `safe`
+	[3] decorator uses `compact` to strip `None` values from a `Sequence` of `Tensor` before passing
+	the result to the decorated function.
+
+	Parameters
+	----------
+	arr : Iterable[T_co | None]
+		An iterable that may contain a mix of non-`None` values and `None` values to discard.
+
+	Returns
+	-------
+	compacted : list[T_co]
+		A `list` containing only the non-`None` elements of `arr`, in iteration order.
+
+	See Also
+	--------
+	exists : Test whether a value is not `None`.
+	safe : Decorator that applies `compact` to filter `None` values before calling the wrapped function.
+
+	References
+	----------
+	[1] py_pwy_phy_hy.exists
+
+	[2] filter - Python documentation
+		https://docs.python.org/3/library/functions.html#filter
+	[3] py_pwy_phy_hy.safe
+	"""
+	return [*filter(exists, arr)]
+
+def default(v: TVar | None, d: TVar) -> TVar:
+	"""Return `v` when `v` is not `None`, or `d` when `v` is `None`.
+
+	You can use `default` to supply a fallback value for optional parameters and accumulators.
+	`default` calls `exists` [1] to test `v`. When `exists(v)` is `True`, `default` returns `v`
+	unchanged. When `v` is `None`, `default` returns `d`. Two overloads ensure the return type
+	narrows correctly under static analysis.
+
+	Parameters
+	----------
+	v : TVar | None
+		The primary value to test.
+	d : TVar
+		The fallback value returned when `v` is `None`.
+
+	Returns
+	-------
+	result : TVar
+		`v` when `v` is not `None`, otherwise `d`.
+
+	See Also
+	--------
+	exists : Test whether a value is not `None`.
+
+	References
+	----------
+	[1] py_pwy_phy_hy.exists
+	"""
+	return v if exists(v) else d
+
 def divisible_by(num: float, den: float) -> bool:
 	"""Test whether `num` is evenly divisible by `den`.
 
@@ -68,6 +131,60 @@ def exists(v: TVar | None) -> TypeGuard[TVar]:
 	"""
 	return v is not None
 
+def first(arr: SupportsIntIndex[TVar]) -> TVar:
+	"""Return the element at index `0` of `arr`.
+
+	You can use `first` to retrieve the first element of any sequence that supports integer indexing
+	via `SupportsIntIndex` [1]. `first` delegates to `arr[0]`.
+
+	Parameters
+	----------
+	arr : SupportsIntIndex[TVar]
+		A sequence that supports integer indexing. Access with index `0` must be valid.
+
+	Returns
+	-------
+	element : TVar
+		The element at position `0` in `arr`.
+
+	References
+	----------
+	[1] py_pwy_phy_hy.SupportsIntIndex
+	"""
+	return arr[0]
+
+def identity(t: TVar, *_args: object, **_kwargs: object) -> TVar:
+	"""Return `t` unchanged, ignoring all other arguments.
+
+	You can use `identity` as a no-op callable in contexts that require a function but no
+	transformation. `identity` accepts and discards any additional positional or keyword arguments,
+	making `identity` a drop-in substitute for any unary or multi-argument callable.
+	`py_pwy_phy_hy.maybe` [1] returns `identity` when its `fn` argument is `None`.
+
+	Parameters
+	----------
+	t : TVar
+		The value to return unchanged.
+	*args : Any
+		Additional positional arguments. Accepted and discarded.
+	**kwargs : Any
+		Additional keyword arguments. Accepted and discarded.
+
+	Returns
+	-------
+	result : TVar
+		`t`, the same object that was passed as the first argument.
+
+	See Also
+	--------
+	maybe : Return `identity` when `fn` is `None`, otherwise wrap `fn` to skip `None` inputs.
+
+	References
+	----------
+	[1] py_pwy_phy_hy.identity
+	"""
+	return t
+
 def map_values(fn: Callable[[TVar], TVar], v: TVar) -> TVar:
 	"""Apply `fn` to every leaf value in a nested `list`, `tuple`, or `dict` structure.
 
@@ -111,123 +228,6 @@ def map_values(fn: Callable[[TVar], TVar], v: TVar) -> TVar:
 		v = {key: map_values(fn, val) for key, val in v.items()} # pyright: ignore[reportAssignmentType, reportUnknownArgumentType, reportUnknownVariableType]
 
 	return fn(v)
-
-def default(v: TVar | None, d: TVar) -> TVar:
-	"""Return `v` when `v` is not `None`, or `d` when `v` is `None`.
-
-	You can use `default` to supply a fallback value for optional parameters and accumulators.
-	`default` calls `exists` [1] to test `v`. When `exists(v)` is `True`, `default` returns `v`
-	unchanged. When `v` is `None`, `default` returns `d`. Two overloads ensure the return type
-	narrows correctly under static analysis.
-
-	Parameters
-	----------
-	v : TVar | None
-		The primary value to test.
-	d : TVar
-		The fallback value returned when `v` is `None`.
-
-	Returns
-	-------
-	result : TVar
-		`v` when `v` is not `None`, otherwise `d`.
-
-	See Also
-	--------
-	exists : Test whether a value is not `None`.
-
-	References
-	----------
-	[1] py_pwy_phy_hy.exists
-	"""
-	return v if exists(v) else d
-
-def identity(t: TVar, *_args: object, **_kwargs: object) -> TVar:
-	"""Return `t` unchanged, ignoring all other arguments.
-
-	You can use `identity` as a no-op callable in contexts that require a function but no
-	transformation. `identity` accepts and discards any additional positional or keyword arguments,
-	making `identity` a drop-in substitute for any unary or multi-argument callable.
-	`py_pwy_phy_hy.maybe` [1] returns `identity` when its `fn` argument is `None`.
-
-	Parameters
-	----------
-	t : TVar
-		The value to return unchanged.
-	*args : Any
-		Additional positional arguments. Accepted and discarded.
-	**kwargs : Any
-		Additional keyword arguments. Accepted and discarded.
-
-	Returns
-	-------
-	result : TVar
-		`t`, the same object that was passed as the first argument.
-
-	See Also
-	--------
-	maybe : Return `identity` when `fn` is `None`, otherwise wrap `fn` to skip `None` inputs.
-
-	References
-	----------
-	[1] py_pwy_phy_hy.identity
-	"""
-	return t
-
-def first(arr: SupportsIntIndex[TVar]) -> TVar:
-	"""Return the element at index `0` of `arr`.
-
-	You can use `first` to retrieve the first element of any sequence that supports integer indexing
-	via `SupportsIntIndex` [1]. `first` delegates to `arr[0]`.
-
-	Parameters
-	----------
-	arr : SupportsIntIndex[TVar]
-		A sequence that supports integer indexing. Access with index `0` must be valid.
-
-	Returns
-	-------
-	element : TVar
-		The element at position `0` in `arr`.
-
-	References
-	----------
-	[1] py_pwy_phy_hy.SupportsIntIndex
-	"""
-	return arr[0]
-
-def compact(arr: Iterable[T_co | None]) -> list[T_co]:
-	"""Filter `None` values from `arr` and return the remaining elements as a `list`.
-
-	You can use `compact` to remove all `None` values from an iterable, producing a typed `list` of
-	non-`None` elements. `compact` applies `exists` [1] as the predicate for `filter` [2]. The `safe`
-	[3] decorator uses `compact` to strip `None` values from a `Sequence` of `Tensor` before passing
-	the result to the decorated function.
-
-	Parameters
-	----------
-	arr : Iterable[T_co | None]
-		An iterable that may contain a mix of non-`None` values and `None` values to discard.
-
-	Returns
-	-------
-	compacted : list[T_co]
-		A `list` containing only the non-`None` elements of `arr`, in iteration order.
-
-	See Also
-	--------
-	exists : Test whether a value is not `None`.
-	safe : Decorator that applies `compact` to filter `None` values before calling the wrapped function.
-
-	References
-	----------
-	[1] py_pwy_phy_hy.exists
-
-	[2] filter - Python documentation
-		https://docs.python.org/3/library/functions.html#filter
-	[3] py_pwy_phy_hy.safe
-	"""
-	return [*filter(exists, arr)]
 
 @overload
 def maybe(fn: Callable[Concatenate[TVar, PSpec], RVar]) -> Callable[Concatenate[TVar | None, PSpec], RVar | None]: ...
@@ -306,6 +306,54 @@ def maybe(
 			return None
 
 		return fn(t, *args, **kwargs)
+
+	return inner
+
+def once(fn: Callable[PSpec, RVar]) -> Callable[PSpec, RVar | None]:
+	"""Wrap a callable so the callable executes at most once.
+
+	You can use this function to restrict `fn` (***f***u***n***ction) to a single execution. On all
+	subsequent calls, `fn` returns `None`.
+
+	Parameters
+	----------
+	fn : Callable[PSpec, RVar]
+		(***f***u***n***ction) The `Callable` to wrap.
+
+	Returns
+	-------
+	single_use_fn : Callable[PSpec, RVar | None]
+		A wrapper that invokes fn on the first call and returns None on all subsequent
+		calls. The wrapper accepts the same arguments as fn.
+
+	Examples
+	--------
+	This example creates a variant of the built-in `print` that emits output only once:
+
+		```python
+		print_once = once(print)
+
+		if device_properties.major == 8 and device_properties.minor == 0:
+			print_once('A100 GPU detected, using flash attention if input tensor is on cuda')
+		```
+
+	References
+	----------
+	[1] functools.wraps - Python standard library
+		https://docs.python.org/3/library/functools.html#functools.wraps
+	[2] py_pwy_phy_hy (PSpec, RVar)
+	"""
+	called: bool = False
+
+	@wraps(fn)
+	def inner(*args: PSpec.args, **kwargs: PSpec.kwargs) -> RVar | None:
+		nonlocal called
+
+		if called:
+			return None
+
+		called = True
+		return fn(*args, **kwargs)
 
 	return inner
 
