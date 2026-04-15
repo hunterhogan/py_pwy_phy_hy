@@ -1,10 +1,11 @@
 from collections.abc import Sequence
 from py_pwy_phy_hy import (
-	align_dims_left, and_masks, lens_to_mask, maybe, or_masks, pad_at_dim, pad_left_at_dim, pad_left_at_dim_to, pad_left_ndim_to, pad_ndim,
-	pad_right_at_dim, pad_right_at_dim_to, pad_right_ndim_to, pad_sequence, pad_sequence_and_cat, safe_cat, safe_stack, shape_with_replace,
-	slice_at_dim, slice_left_at_dim, slice_right_at_dim)
+	align_dims_left, and_masks, exists, lens_to_mask, maybe, or_masks, pad_at_dim, pad_left_at_dim, pad_left_at_dim_to, pad_left_ndim_to,
+	pad_ndim, pad_right_at_dim, pad_right_at_dim_to, pad_right_ndim_to, pad_sequence, pad_sequence_and_cat, safe_cat, safe_stack,
+	shape_with_replace, slice_at_dim, slice_left_at_dim, slice_right_at_dim)
 from py_pwy_phy_hy.einops import pack_with_inverse
-from py_pwy_phy_hy.utils import exists, masked_mean, tree_flatten_with_inverse, tree_map_tensor
+from py_pwy_phy_hy.scaleValues import masked_mean
+from py_pwy_phy_hy.utils import tree_flatten_with_inverse, tree_map_tensor
 from torch import tensor
 import torch
 

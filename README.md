@@ -16,8 +16,8 @@ Use `py-pwy-phy-hy` when you want strict typing, a `py.typed` marker, focused mo
 - Import path: `py_pwy_phy_hy`.
 - Python requirement: `>=3.10`.
 - Runtime dependencies: `torch`, `einops`, `packaging`, and `typing-extensions`.
-- Root package exports: helper functions, slicing helpers, rank-alignment helpers, mask helpers, safe concatenation helpers, padding helpers, and PyTree / `einops` helpers.
-- Submodules with dedicated imports: `py_pwy_phy_hy.device`, `py_pwy_phy_hy.einops`, and `py_pwy_phy_hy.save_load`.
+- Root package exports: helper functions, slicing helpers, rank-alignment helpers, mask helpers, safe concatenation helpers, padding helpers, normalization helpers, and PyTree / `einops` helpers.
+- Submodules with dedicated imports: `py_pwy_phy_hy.device`, `py_pwy_phy_hy.einops`, `py_pwy_phy_hy.save_load`, and `py_pwy_phy_hy.scaleValues`.
 - Typing status: the package ships a `py.typed` marker and the repository uses strict type checking.
 - Best fit: lucidrains-style model repositories that work with variable-length tensors, `einops` patterns, optional intermediate tensors, and nested `torch.nn.Module` graphs.
 
@@ -242,14 +242,29 @@ These functions add numeric padding values along an existing tensor dimension.
 
 When `pad_lens=True` and `return_lens=True`, the second tensor contains padding widths rather than original lengths.
 
-### PyTree and `einops` helpers
+### Normalization and masked reduction helpers
 
 | Name                                            | Contract                                                                                                                                                                                                                                                                                       |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `l2norm(t)`                                     | Normalizes each vector in `t` to unit length along the last dimension by dividing by its L2 norm. Delegates to `torch.nn.functional.normalize` with `p=2` and `dim=-1`.                                                                                                                        |
 | `masked_mean(t, mask=None, dim=None, eps=1e-5)` | Computes a masked mean. When `mask is None`, the function falls back to `t.mean(...)`. When no masked position is selected and `dim is None`, the function returns zero by summing over the empty selection. When `mask.ndim < t.ndim`, the function right-pads mask rank before broadcasting. |
-| `tree_map_tensor(fn, tree)`                     | Applies `fn` to every tensor leaf in a PyTree and leaves non-tensor leaves unchanged.                                                                                                                                                                                                          |
-| `tree_flatten_with_inverse(tree)`               | Returns a flat list of leaves and an inverse function that reconstructs the original PyTree shape from a replacement iterable of leaves.                                                                                                                                                       |
+
+### PyTree helpers
+
+| Name                              | Contract                                                                                                                                                               |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tree_map_tensor(fn, tree)`       | Applies `fn` to every tensor leaf in a PyTree and leaves non-tensor leaves unchanged.                                                                                  |
+| `tree_flatten_with_inverse(tree)` | Returns a flat list of leaves and an inverse function that reconstructs the original PyTree shape from a replacement iterable of leaves.                               |
+
+## `scaleValues` submodule reference
+
+The `py_pwy_phy_hy.scaleValues` submodule contains vector normalization, masked mean computation, and the `RMSNorm` layer. `l2norm` and `masked_mean` are also re-exported from the package root.
+
+| Name                                            | Contract                                                                                                                                                                                                                                                                                       |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `l2norm(t)`                                     | Normalizes each vector in `t` to unit length along the last dimension. Delegates to `torch.nn.functional.normalize` with `p=2` and `dim=-1`.                                                                                                                                                   |
+| `masked_mean(t, mask=None, dim=None, eps=1e-5)` | Computes a masked mean. When `mask is None`, the function falls back to `t.mean(...)`. When no masked position is selected and `dim is None`, the function returns zero by summing over the empty selection. When `mask.ndim < t.ndim`, the function right-pads mask rank before broadcasting. |
+| `RMSNorm(dim)`                                  | `torch.nn.Module` that normalizes the last feature axis to unit length, multiplies by `√dim`, and applies a learned per-feature `gamma` parameter. Use as a pre-normalization layer before attention, feedforward, or linear projection sublayers in transformer-style modules.                |
 
 ## `einops` submodule reference
 
@@ -354,6 +369,7 @@ This repository is not a repackaged mirror of upstream. This repository makes a 
 - `src/py_pwy_phy_hy/` — package source.
 - `src/py_pwy_phy_hy/device.py` — device inference and input-routing decorators.
 - `src/py_pwy_phy_hy/save_load.py` — checkpoint save / load decorator and nested reconstruction helpers.
+- `src/py_pwy_phy_hy/scaleValues.py` — vector normalization, masked mean, and the `RMSNorm` layer.
 - `tests/` — regression tests and usage examples for helpers, masks, padding, device routing, and checkpoint reconstruction.
 
 ## Development

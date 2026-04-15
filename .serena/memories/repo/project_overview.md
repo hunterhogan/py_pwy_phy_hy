@@ -1,0 +1,4 @@
+- Purpose: typed PyTorch and einops utility library for tensor shaping, masking, padding, device routing, and checkpoint helpers.
+- Stack: Python >=3.10, PyTorch, einops, pytest, pyright, ruff, more-itertools.
+- Structure: source in `src/py_pwy_phy_hy/`; tests in `tests/`; package root re-exports many helpers; submodules include `device`, `einops`, `save_load`, and focused private modules such as `_cat_and_stack.py` and `_padding.py`.
+- This repo emphasizes strict typing, extensive tests, and detailed docstrings compared with upstream `torch-einops-utils`.

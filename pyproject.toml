@@ -1,6 +1,6 @@
 [project]
 name = "py-pwy-phy-hy"
-version = "0.1.2"
+version = "0.1.3"
 description = "Typed tensor-shaping, masking, padding, device-routing, and checkpoint utilities for PyTorch and `einops`. A superset of `lucidrains/torch-einops-utils` with similar utilities from other lucidrains packages. Adds strict typing, extensive tests, and comprehensive docstrings."
 readme = "README.md"
 requires-python = ">=3.10"

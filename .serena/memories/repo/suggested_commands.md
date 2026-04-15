@@ -1,0 +1,6 @@
+- Setup: `uv sync`
+- Run all tests: `pytest`
+- Run specific tests: `pytest tests/test_scaleValues.py tests/test_cat_stack.py`
+- Type check: `pyright`
+- Lint: `ruff check .`
+- Windows shell utilities likely used in this repo context: `git`, `dir`, `cd`, `findstr`.

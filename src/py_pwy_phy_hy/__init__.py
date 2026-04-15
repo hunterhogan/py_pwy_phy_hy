@@ -109,6 +109,8 @@ einops
 	Pack and unpack `Tensor` objects with `einops` patterns and paired inverse functions.
 save_load
 	Decorate `torch.nn.Module` subclasses with checkpoint save, load, and reconstruction helpers.
+scaleValues
+	Normalize feature vectors and compute masked means.
 """
 # isort: split
 from py_pwy_phy_hy._semiotics import decreasing as decreasing, zeroIndexed as zeroIndexed
@@ -147,11 +149,9 @@ from py_pwy_phy_hy._padding import (
 	pad_sequence_and_cat as pad_sequence_and_cat)
 
 # isort: split
-from py_pwy_phy_hy.utils import l2norm as l2norm, masked_mean as masked_mean
-
-# isort: split
 from py_pwy_phy_hy.utils import tree_flatten_with_inverse as tree_flatten_with_inverse, tree_map_tensor as tree_map_tensor
 
 # isort: split
-# NOTE encourage users to import pack_with_inverse from the einops submodule for discoverability
+# NOTE These imports are for backwards compatibility. Linters ought to tell users to import from the correct submodules.
 from py_pwy_phy_hy.einops import pack_with_inverse  # pyright: ignore[reportUnusedImport]
+from py_pwy_phy_hy.scaleValues import l2norm, masked_mean  # pyright: ignore[reportUnusedImport]

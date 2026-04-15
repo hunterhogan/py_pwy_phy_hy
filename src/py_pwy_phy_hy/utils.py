@@ -1,15 +1,11 @@
-"""Provide PyTorch tensor normalization, PyTree manipulation, and masked mean utilities.
+"""Provide PyTree manipulation utilities for PyTorch tensors.
 
-You can use this module to normalize tensor vectors to unit length, compute masked means, apply
-functions to tensor leaves in PyTree structures, and flatten and reconstruct nested data.
+You can use this module to apply functions to tensor leaves in PyTree structures and to flatten
+and reconstruct nested data.
 
 Contents
 --------
 Functions
-	l2norm
-		Normalize `Tensor` vectors to unit length along the last dimension.
-	masked_mean
-		Compute the mean of a tensor over positions selected by a boolean mask.
 	tree_flatten_with_inverse
 		Flatten a PyTree into a list of leaves and return a paired inverse function.
 	tree_map_tensor
@@ -24,141 +20,6 @@ from torch.utils._pytree import PyTree, tree_flatten, tree_map, tree_unflatten
 from typing import Any
 import torch
 import torch.nn.functional as F
-
-def l2norm(t: Tensor) -> Tensor:
-	"""Normalize `Tensor` vectors to unit length.
-
-	You can use `l2norm` to normalize attention query and key vectors before computing similarity
-	scores. Normalizing query and key vectors prevents those with large magnitudes from dominating
-	similarity scores.
-
-	Parameters
-	----------
-	t : Tensor
-		Input `Tensor` to normalize.
-
-	Returns
-	-------
-	normalizedTensor : Tensor
-		`Tensor` with each vector scaled to unit length.
-
-	torch
-	-----
-	`l2norm` calls `torch.nn.functional.normalize` [1] with `p=2` and `dim=-1`, which divides each
-	vector by its Euclidean length (L2 norm) along the last dimension.
-
-	Examples
-	--------
-	Normalize `Tensor` attention query, `q`, and `Tensor` attention key, `k`, before computing
-	similarity scores: [2]
-
-		```python
-		q, k = map(l2norm, (q, k))
-		```
-
-	References
-	----------
-	[1] torch.nn.functional.normalize
-		https://pytorch.org/docs/stable/generated/torch.nn.functional.normalize.html
-	[2] BS-RoFormer.mel_band_roformer.LinearAttention
-		https://github.com/lucidrains/BS-RoFormer
-	"""
-	return F.normalize(t, dim = -1, p = 2)
-
-def masked_mean(
-	t: Tensor,
-	mask: Tensor | None = None,
-	dim: torch.Size | list[int] | tuple[int, ...] | int | None = None,
-	eps: float = 1e-5,
-) -> Tensor:
-	"""Compute the mean of `t` over positions selected by `mask`.
-
-	You can use this function to average only the elements of `t` where `mask` is `True`, ignoring
-	masked-out positions. When `mask` is `None`, the function falls back to the standard
-	`torch.Tensor.mean` [1]. When `mask` has fewer dimensions than `t`, the function right-pads
-	`mask` with singleton dimensions using `pad_right_ndim` [2] before broadcasting. When all
-	positions in `mask` are `False` and `dim` is `None`, the function returns zero by summing over
-	the empty selection.
-
-	Parameters
-	----------
-	t : Tensor
-		The input tensor to be averaged.
-	mask : Tensor | None = None
-		A boolean tensor selecting which positions contribute to the mean. When `mask` has fewer
-		dimensions than `t`, singleton dimensions are appended on the right before broadcasting. Pass
-		`None` to compute an unmasked mean.
-	dim : torch.Size | list[int] | tuple[int, ...] | int | None = None
-		The dimension or dimensions along which to compute the mean. Pass `None` to reduce over all
-		dimensions.
-	eps : float = 1e-5
-		A small value added to the denominator to prevent division by zero when computing the masked
-		mean along a dimension.
-
-	Returns
-	-------
-	result : Tensor
-		The masked mean of `t`. The shape matches `t` with the reduced dimension removed when `dim`
-		is specified, or a scalar tensor when `dim` is `None`.
-
-	See Also
-	--------
-	pad_right_ndim : Pad singleton dimensions on the right of a tensor to reach a target number of dimensions.
-
-	Examples
-	--------
-	Compute the mean of all elements with no mask [3]:
-
-		```python
-		from torch import tensor
-		from py_pwy_phy_hy import masked_mean
-
-		t = tensor([1.0, 2.0, 3.0, 4.0])
-		result = masked_mean(t)
-		# result == tensor(2.5)
-		```
-
-	Select only the `True` positions using a boolean mask [3]:
-
-		```python
-		mask = tensor([True, False, True, False])
-		result = masked_mean(t, mask=mask)
-		# result == tensor(2.0)
-		```
-
-	Average along a specific dimension [3]:
-
-		```python
-		t = tensor([[1.0, 2.0], [3.0, 4.0]])
-		mask = tensor([[True, False], [True, True]])
-		result = masked_mean(t, mask=mask, dim=1)
-		# result == tensor([1.0, 3.5])
-		```
-
-	References
-	----------
-	[1] torch.Tensor.mean - PyTorch documentation
-		https://pytorch.org/docs/stable/generated/torch.Tensor.mean.html
-	[2] py_pwy_phy_hy.pad_right_ndim
-
-	[3] tests.test_utils.test_masked_mean
-
-	"""
-	if not exists(mask):
-		return t.mean(dim = dim) if exists(dim) else t.mean()
-
-	if mask.ndim < t.ndim:
-		mask = pad_right_ndim(mask, t.ndim - mask.ndim)
-
-	mask = mask.expand_as(t)
-
-	if not exists(dim):
-		return t[mask].mean() if mask.any() else t[mask].sum()
-
-	num: Tensor = (t * mask).sum(dim = dim)
-	den: Tensor = mask.sum(dim = dim)
-
-	return num / den.clamp(min = eps)
 
 def tree_map_tensor(fn: Callable[[Tensor], Tensor], tree: PyTree) -> PyTree:
 	"""Apply `fn` to every `torch.Tensor` leaf in `tree`, leaving non-tensor leaves unchanged.

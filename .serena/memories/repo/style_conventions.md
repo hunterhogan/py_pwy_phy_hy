@@ -1,0 +1,4 @@
+- Python code uses strict typing and pyright configuration.
+- Preserve existing formatting style; tests in this repo currently mix tabs and spaces by file, so keep the surrounding file style.
+- Test rules: fixtures must live in `tests/conftest.py`; every test should use fixtures or `@pytest.mark.parametrize`; assertions require descriptive messages.
+- Prefer minimal diffs and no unrelated rewrites.

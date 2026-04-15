@@ -1,0 +1,3 @@
+- After code changes, run targeted pytest files first, then inspect errors if any.
+- For Python changes, keep typing intact and validate with pyright/ruff when relevant.
+- Before finishing, update the task checklist with completed statuses and summarize what was verified.
