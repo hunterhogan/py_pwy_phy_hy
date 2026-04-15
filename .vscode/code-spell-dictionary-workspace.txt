@@ -4,6 +4,7 @@ amax
 arange
 augs
 autograd
+broadcastable
 capsys
 coor
 ction
@@ -24,6 +25,7 @@ locoformer
 metacontroller
 mlps
 Multistream
+Murtadha
 musdb
 ndims
 pycodestyle

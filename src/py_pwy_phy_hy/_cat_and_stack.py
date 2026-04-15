@@ -2,7 +2,99 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from py_pwy_phy_hy import safe
-from torch import cat, stack, Tensor
+from torch import broadcast_tensors, cat, stack, Tensor  # pyright: ignore[reportUnknownVariableType]
+from typing import cast
+
+def broadcast_cat(tensors: Sequence[Tensor], dim: int = -1) -> Tensor:
+	"""Broadcast tensor groups before concatenation.
+
+	You can use this function to concatenate tensor objects that differ only by broadcastable
+	singleton dimensions. `broadcast_cat` first applies `torch.broadcast_tensors` [1] and then
+	concatenates the aligned tensor objects with `torch.cat` [1].
+
+	Parameters
+	----------
+	tensors : Sequence[Tensor]
+		Iterable of tensor objects that must be broadcast-compatible before concatenation.
+	dim : int = -1
+		Dimension along which to concatenate the broadcasted tensor objects.
+
+	Returns
+	-------
+	concatenated : Tensor
+		Concatenated tensor object produced after broadcasting every tensor object in `tensors`.
+
+	References
+	----------
+	[1] PyTorch - Context7
+		https://context7.com/pytorch/pytorch
+	"""
+	return cat(cast(list[Tensor], broadcast_tensors(*tensors)), dim)
+
+@safe
+def safe_cat(tensors: Sequence[Tensor], dim: int = 0) -> Tensor | None:
+	"""Concatenate tensors from `tensors` along an existing dimension, skipping `None` values.
+
+	You can use `safe_cat` to concatenate a mixed sequence of `Tensor` and `None` values. The `safe`
+	[1] decorator filters out `None` values from `tensors` before passing the remaining `Tensor`
+	values to `torch.cat` [2]. If `tensors` contains no non-`None` values, `safe_cat` returns `None`.
+
+	A common pattern is iterative accumulation where the accumulator starts as `None`. On the first
+	iteration, `safe_cat` receives one non-`None` `Tensor` and returns it unchanged. On subsequent
+	iterations, `safe_cat` concatenates the accumulator with the new `Tensor`.
+
+	Parameters
+	----------
+	tensors : Sequence[Tensor | None]
+		A sequence of `Tensor` or `None` values. `None` values are filtered out before concatenation.
+		All non-`None` `Tensor` values must have the same shape in every dimension except `dim`.
+	dim : int = 0
+		The dimension along which to concatenate.
+
+	Returns
+	-------
+	concatenated : Tensor | None
+		The concatenated `Tensor`, or `None` if `tensors` contains no non-`None` values.
+
+	See Also
+	--------
+	safe_stack : Stack tensors along a new dimension, skipping `None` values.
+
+	Examples
+	--------
+	From the test suite [3]:
+
+		>>> import torch
+		>>> from py_pwy_phy_hy import safe_cat
+		>>> t1, t2 = torch.randn(2, 3), torch.randn(2, 3)
+		>>> safe_cat([]) is None
+		True
+		>>> safe_cat([None]) is None
+		True
+		>>> safe_cat([t1, None]).shape  # None is skipped; only t1 is returned
+		torch.Size([2, 3])
+		>>> safe_cat([t1, t2]).shape
+		torch.Size([4, 3])
+
+	From sdft_pytorch [4], accumulating per-step token losses across a generation loop where
+	`token_kl_div_losses` is initialized to `None` before the loop:
+
+		```python
+		token_kl_div_losses = safe_cat((token_kl_div_losses, token_kl_div), dim=1)
+		```
+
+	References
+	----------
+	[1] py_pwy_phy_hy.safe
+
+	[2] torch.cat - PyTorch documentation
+		https://pytorch.org/docs/stable/generated/torch.cat.html
+	[3] tests/test_utils.py
+
+	[4] lucidrains/sdft-pytorch
+		https://github.com/lucidrains/sdft-pytorch
+	"""
+	return cat(tensors, dim = dim)  # pyright: ignore[reportUnknownVariableType, reportCallIssue, reportArgumentType] https://github.com/pytorch/pytorch/issues/179391
 
 @safe
 def safe_stack(tensors: Sequence[Tensor], dim: int = 0) -> Tensor | None:
@@ -72,71 +164,6 @@ def safe_stack(tensors: Sequence[Tensor], dim: int = 0) -> Tensor | None:
 		https://github.com/lucidrains/dreamer4
 	"""
 	return stack(tensors, dim = dim)  # pyright: ignore[reportArgumentType] https://github.com/pytorch/pytorch/issues/179391
-
-@safe
-def safe_cat(tensors: Sequence[Tensor], dim: int = 0) -> Tensor | None:
-	"""Concatenate tensors from `tensors` along an existing dimension, skipping `None` values.
-
-	You can use `safe_cat` to concatenate a mixed sequence of `Tensor` and `None` values. The `safe`
-	[1] decorator filters out `None` values from `tensors` before passing the remaining `Tensor`
-	values to `torch.cat` [2]. If `tensors` contains no non-`None` values, `safe_cat` returns `None`.
-
-	A common pattern is iterative accumulation where the accumulator starts as `None`. On the first
-	iteration, `safe_cat` receives one non-`None` `Tensor` and returns it unchanged. On subsequent
-	iterations, `safe_cat` concatenates the accumulator with the new `Tensor`.
-
-	Parameters
-	----------
-	tensors : Sequence[Tensor | None]
-		A sequence of `Tensor` or `None` values. `None` values are filtered out before concatenation.
-		All non-`None` `Tensor` values must have the same shape in every dimension except `dim`.
-	dim : int = 0
-		The dimension along which to concatenate.
-
-	Returns
-	-------
-	concatenated : Tensor | None
-		The concatenated `Tensor`, or `None` if `tensors` contains no non-`None` values.
-
-	See Also
-	--------
-	safe_stack : Stack tensors along a new dimension, skipping `None` values.
-
-	Examples
-	--------
-	From the test suite [3]:
-
-		>>> import torch
-		>>> from py_pwy_phy_hy import safe_cat
-		>>> t1, t2 = torch.randn(2, 3), torch.randn(2, 3)
-		>>> safe_cat([]) is None
-		True
-		>>> safe_cat([None]) is None
-		True
-		>>> safe_cat([t1, None]).shape  # None is skipped; only t1 is returned
-		torch.Size([2, 3])
-		>>> safe_cat([t1, t2]).shape
-		torch.Size([4, 3])
-
-	From sdft_pytorch [4], accumulating per-step token losses across a generation loop where
-	`token_kl_div_losses` is initialized to `None` before the loop:
-
-		```python
-		token_kl_div_losses = safe_cat((token_kl_div_losses, token_kl_div), dim=1)
-		```
-
-	References
-	----------
-	[1] py_pwy_phy_hy.safe
-
-	[2] torch.cat - PyTorch documentation
-		https://pytorch.org/docs/stable/generated/torch.cat.html
-	[3] tests/test_utils.py
-
-	[4] lucidrains/sdft-pytorch
-		https://github.com/lucidrains/sdft-pytorch
-	"""
-	return cat(tensors, dim = dim)  # pyright: ignore[reportUnknownVariableType, reportCallIssue, reportArgumentType] https://github.com/pytorch/pytorch/issues/179391
 
 """
 Some or all of the logic in this module may be protected by the following.

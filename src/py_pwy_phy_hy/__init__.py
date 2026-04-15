@@ -66,6 +66,8 @@ reduce_masks
 
 Concatenating and stacking
 --------------------------
+broadcast_cat
+	Broadcast tensor groups before concatenation.
 safe_cat
 	Concatenate tensors while skipping `None` values.
 safe_stack
@@ -136,7 +138,7 @@ from py_pwy_phy_hy._dimensions import (
 from py_pwy_phy_hy._masking import and_masks as and_masks, lens_to_mask as lens_to_mask, or_masks as or_masks, reduce_masks as reduce_masks
 
 # isort: split
-from py_pwy_phy_hy._cat_and_stack import safe_cat as safe_cat, safe_stack as safe_stack
+from py_pwy_phy_hy._cat_and_stack import broadcast_cat as broadcast_cat, safe_cat as safe_cat, safe_stack as safe_stack
 
 # isort: split
 from py_pwy_phy_hy._padding import (

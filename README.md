@@ -37,6 +37,7 @@ Import most tensor helpers from the package root:
 from py_pwy_phy_hy import (
     align_dims_left,
     and_masks,
+    broadcast_cat,
     l2norm,
     lens_to_mask,
     masked_mean,
@@ -206,12 +207,13 @@ These functions change shape by inserting singleton dimensions. These functions 
 | `and_masks(masks)`                 | Equivalent to `reduce_masks(masks, torch.logical_and)`. Returns `None` when no active mask remains.                                                  |
 | `or_masks(masks)`                  | Equivalent to `reduce_masks(masks, torch.logical_or)`. Returns `None` when no active mask remains.                                                   |
 
-### Safe concatenation and stacking helpers
+### Concatenation and stacking helpers
 
-| Name                         | Contract                                                                                                                                                                                        |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `safe_stack(tensors, dim=0)` | Removes `None` values, then applies `torch.stack`. Returns `None` when no active tensor remains. Even a single tensor is stacked, so the result gains a new dimension.                          |
-| `safe_cat(tensors, dim=0)`   | Removes `None` values, then applies `torch.cat`. Returns `None` when no active tensor remains. A single surviving tensor is returned unchanged because `torch.cat` over one tensor is identity. |
+| Name                            | Contract                                                                                                                                                                                        |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `broadcast_cat(tensors, dim=0)` | Broadcasts tensor groups before concatenation.                                                                                                                                                  |
+| `safe_stack(tensors, dim=0)`    | Removes `None` values, then applies `torch.stack`. Returns `None` when no active tensor remains. Even a single tensor is stacked, so the result gains a new dimension.                          |
+| `safe_cat(tensors, dim=0)`      | Removes `None` values, then applies `torch.cat`. Returns `None` when no active tensor remains. A single surviving tensor is returned unchanged because `torch.cat` over one tensor is identity. |
 
 ### Numeric padding and batching helpers
 
