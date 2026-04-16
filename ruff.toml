@@ -84,3 +84,4 @@ convention = "numpy"
 docstring-code-format = true
 quote-style = "single"
 indent-style = "tab"
+skip-magic-trailing-comma = true
