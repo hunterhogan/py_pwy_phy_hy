@@ -225,7 +225,7 @@ def map_values(fn: Callable[[TVar], TVar], v: TVar) -> TVar:
 		return type(v)(map_values(fn, el) for el in v) # pyright: ignore[reportUnknownVariableType, reportUnknownArgumentType]
 
 	if isinstance(v, dict):
-		v = {key: map_values(fn, val) for key, val in v.items()} # pyright: ignore[reportAssignmentType, reportUnknownArgumentType, reportUnknownVariableType]
+		v = {key: map_values(fn, val) for key, val in v.items()} # pyright: ignore[reportAssignmentType, reportUnknownArgumentType, reportUnknownVariableType]  # ty:ignore[invalid-assignment]
 
 	return fn(v)
 

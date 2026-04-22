@@ -129,9 +129,11 @@ def pack_with_inverse(t: Tensor | list[Tensor], pattern: str) -> tuple[Tensor, C
 	is_one: bool = is_tensor(t)
 
 	if is_one:
-		t = [t]
+		sequenceT: Sequence[Tensor] = [t]  # ty:ignore[invalid-assignment]
+	else:
+		sequenceT = t
 
-	packed, packed_shape = pack(t, pattern)
+	packed, packed_shape = pack(sequenceT, pattern)  # ty:ignore[invalid-argument-type]
 
 	def inverse(out: Tensor, inv_pattern: str | None = None) -> Tensor | list[Tensor]:
 		inv_pattern = default(inv_pattern, pattern)

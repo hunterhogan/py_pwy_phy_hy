@@ -384,7 +384,7 @@ def save_load(
 			setattr(self, config_instance_var_name, (args, kwargs))
 			_orig_init(self, *args, **kwargs)
 
-		def _save(self: TorchNNModule, path: StrPath, overwrite: bool = True) -> None:
+		def _save(self: TorchNNModule, path: StrPath, *, overwrite: bool = True) -> None:
 			"""Save the current model state and constructor configuration to a checkpoint file.
 
 			You can use this method to persist a decorated module instance. The method dehydrates
@@ -430,7 +430,7 @@ def save_load(
 
 			torch.save(pkg, str(path))
 
-		def _load(self: TorchNNModule, path: StrPath | Path, strict: bool = True) -> None:
+		def _load(self: TorchNNModule, path: StrPath | Path, *, strict: bool = True) -> None:
 			"""Restore model state from a checkpoint file.
 
 			You can use this method to load parameter values into an already-constructed decorated
@@ -484,7 +484,7 @@ def save_load(
 			self.load_state_dict(pkg['model'], strict = strict)
 
 		@classmethod
-		def _init_and_load_from(cls: type[TorchNNModule], path: StrPath | Path, strict: bool = True) -> TorchNNModule:
+		def _init_and_load_from(cls: type[TorchNNModule], path: StrPath | Path, *, strict: bool = True) -> TorchNNModule:
 			"""Construct a new instance of the decorated class and restore its state from a checkpoint file.
 
 			You can use this classmethod to reconstruct a model that was previously saved with the
@@ -535,8 +535,8 @@ def save_load(
 
 		# set decorated init as well as save, load, and init_and_load
 
-		klass.__init__ = __init__
-# TODO figure out how to use something like `wraps` to the signature and docstring are public.
+		klass.__init__ = __init__  # ty:ignore[invalid-assignment]
+# TODO figure out how to use something like `wraps` to get the signature and docstring are public.
 		setattr(klass, save_method_name, _save)
 		setattr(klass, load_method_name, _load)
 		setattr(klass, init_and_load_classmethod_name, _init_and_load_from)

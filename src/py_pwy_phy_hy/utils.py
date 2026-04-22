@@ -14,12 +14,9 @@ Functions
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from py_pwy_phy_hy import exists, pad_right_ndim
 from torch import is_tensor, Tensor
 from torch.utils._pytree import PyTree, tree_flatten, tree_map, tree_unflatten
 from typing import Any
-import torch
-import torch.nn.functional as F
 
 def tree_map_tensor(fn: Callable[[Tensor], Tensor], tree: PyTree) -> PyTree:
 	"""Apply `fn` to every `torch.Tensor` leaf in `tree`, leaving non-tensor leaves unchanged.

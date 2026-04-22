@@ -291,12 +291,12 @@ def move_inputs_to_module_device(fn: Callable[Concatenate[TorchNNModule, PSpec],
 
 	@wraps(fn)
 	def inner(self: TorchNNModule, *args: PSpec.args, **kwargs: PSpec.kwargs) -> TVar:
-		device: device | None = module_device(self)
+		theDevice: device | None = module_device(self)
 
-		if exists(device):
-			args, kwargs = tree_map_tensor(lambda t: t.to(device), (args, kwargs))
+		if exists(theDevice):
+			args, kwargs = tree_map_tensor(lambda t: t.to(theDevice), (args, kwargs))
 
-		return fn(self, *args, **kwargs)
+		return fn(self, *args, **kwargs)  # ty:ignore[invalid-argument-type]
 
 	return inner
 
