@@ -13,7 +13,7 @@ maintainers = [{ name = "Hunter Hogan", email = "HunterHogan@pm.me" }]
 dependencies = [
   "einops>=0.8.2",
   "packaging>=26.0",
-  "torch>=2.11.0",
+  "torch>=2.10.0",
   "typing-extensions>=4.0.0",
 ]
 
